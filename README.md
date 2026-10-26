@@ -68,8 +68,9 @@ python3 analysis/summarize.py       # prints the paired statistics, writes data/
 python3 analysis/make_figures.py    # writes figures/
 ```
 
-**From the per-run dataset.** Download the dataset (448 MB, link in [`data/README.md`](data/README.md)) and
-extract the four archives into one folder. Then:
+**From the per-run dataset.** Download the four archives and `SHA256SUMS` from the [v1.0 release](https://github.com/pjaswin/x-care-oran/releases/tag/v1.0)
+(79 MB, 448 MB unpacked; contents described in [`data/README.md`](data/README.md)) and extract them into one folder.
+Then:
 
 ```bash
 python3 analysis/compute_metrics.py --dataset <dataset dir>   # rewrites data/processed/metrics_by_seed.csv

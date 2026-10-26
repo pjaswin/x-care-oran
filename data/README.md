@@ -30,10 +30,11 @@ All metrics use the window [0, T_end) of each run, T_end being the last report o
 | `xcare_*` | X-CARE decisions (x-care runs): detected conflicts, notifications to CQM / MLB / both, ties, low-confidence, insufficient data, baseline not ready, repeated-conflict warnings |
 | `priority_rejected_commands` | commands rejected by the fixed-priority mediator (priority runs) |
 
-## Raw dataset (Zenodo)
+## Per-run dataset
 
-The cleaned per-run data (40 runs, 448 MB, one `.tar.xz` archive per configuration) is archived on Zenodo:
-**DOI to be added**. Layout:
+The cleaned per-run data (40 runs, 448 MB unpacked) is attached to the [v1.0 release](https://github.com/pjaswin/x-care-oran/releases/tag/v1.0) as one `.tar.xz`
+archive per configuration (79 MB in total). Extract the four archives into one folder and put `SHA256SUMS` next to
+them; `sha256sum -c SHA256SUMS` then checks every file. Layout:
 
 ```
 <config>/seed_<kk>/                    config in baseline, x-care, priority-cqm, priority-mlb; kk = 01..10
