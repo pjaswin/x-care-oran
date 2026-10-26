@@ -21,6 +21,23 @@ X-CARE is compared with no conflict handling (**Baseline**) and with a fixed-pri
 (**Priority-CQM**) or MLB (**Priority-MLB**) always wins. The evaluation uses ns-O-RAN with 3 mmWave cells, 10 mobile UEs,
 210 s runs and 10 seeds per configuration.
 
+## Dataset
+
+The per-run data of all 40 runs (4 configurations × 10 seeds) is available as downloads of the
+[v1.0 release](https://github.com/pjaswin/x-care-oran/releases/tag/v1.0): 79 MB in total, 448 MB unpacked.
+
+| Download | Configuration | Size |
+|---|---|---:|
+| [`baseline.tar.xz`](https://github.com/pjaswin/x-care-oran/releases/download/v1.0/baseline.tar.xz) | CQM and MLB, no conflict handling | 20.5 MB |
+| [`x-care.tar.xz`](https://github.com/pjaswin/x-care-oran/releases/download/v1.0/x-care.tar.xz) | CQM and MLB with X-CARE | 20.2 MB |
+| [`priority-cqm.tar.xz`](https://github.com/pjaswin/x-care-oran/releases/download/v1.0/priority-cqm.tar.xz) | Fixed priority, CQM wins | 20.5 MB |
+| [`priority-mlb.tar.xz`](https://github.com/pjaswin/x-care-oran/releases/download/v1.0/priority-mlb.tar.xz) | Fixed priority, MLB wins | 20.7 MB |
+| [`SHA256SUMS`](https://github.com/pjaswin/x-care-oran/releases/download/v1.0/SHA256SUMS) | Checksum of every extracted file | |
+
+Each run contains the ns-3 E2 traces and the xApp side: commands, KPM state, cell load, decisions and logs. The
+file formats are described in [`data/README.md`](data/README.md). The processed results (per-run metrics and
+statistics) are already in [`data/processed/`](data/processed/), so the dataset is needed only to recompute them.
+
 ## Results
 
 The table gives the mean over the 10 seeds of each change relative to Baseline. Every seed is paired with its
@@ -68,9 +85,8 @@ python3 analysis/summarize.py       # prints the paired statistics, writes data/
 python3 analysis/make_figures.py    # writes figures/
 ```
 
-**From the per-run dataset.** Download the four archives and `SHA256SUMS` from the [v1.0 release](https://github.com/pjaswin/x-care-oran/releases/tag/v1.0)
-(79 MB, 448 MB unpacked; contents described in [`data/README.md`](data/README.md)) and extract them into one folder.
-Then:
+**From the per-run dataset.** Download the files listed under [Dataset](#dataset) into one folder and extract
+the four archives (`sha256sum -c SHA256SUMS` checks them). Then:
 
 ```bash
 python3 analysis/compute_metrics.py --dataset <dataset dir>   # rewrites data/processed/metrics_by_seed.csv
