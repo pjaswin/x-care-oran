@@ -1,0 +1,293 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -154,33 +154,7 @@
+ # Build NS library examples
+ add_subdirectory(examples)
+ 
+-# ===== libsumo =====
+-find_path(SUMO_INCLUDE_DIR
+-  NAMES libsumo/libsumo.h
+-  HINTS $ENV{SUMO_HOME}
+-  PATH_SUFFIXES src
+-)
+ 
+-find_library(SUMOCPP_LIBRARY
+-  NAMES sumocpp
+-  HINTS $ENV{SUMO_HOME}
+-  PATH_SUFFIXES bin
+-)
+-
+-if(NOT SUMO_INCLUDE_DIR)
+-  message(FATAL_ERROR "Could not find libsumo headers. Please set SUMO_HOME correctly.")
+-endif()
+-
+-if(NOT SUMOCPP_LIBRARY)
+-  message(FATAL_ERROR "Could not find sumocpp library. Please set SUMO_HOME correctly.")
+-endif()
+-
+-message(STATUS "SUMO include dir: ${SUMO_INCLUDE_DIR}")
+-message(STATUS "SUMO library    : ${SUMOCPP_LIBRARY}")
+-
+-# Minimal/global way: let later targets in this directory tree see libsumo
+-include_directories(${SUMO_INCLUDE_DIR})
+-link_libraries(${SUMOCPP_LIBRARY})
+ # ===================
+ 
+ 
+--- a/src/lte/model/lte-enb-rrc.cc
++++ b/src/lte/model/lte-enb-rrc.cc
+@@ -4579,6 +4579,7 @@
+     {
+         if (!onHandoverImsi)
+         {
++            SetSecondaryCellHandoverAllowedStatus(targetCellId, true);
+             if (m_allowHandoverTo.find(targetCellId)->second){    
+                 // The new secondary cell HO procedure does not require to switch to LTE
+                 NS_LOG_UNCOND("PerformHandovertoTarget ----- handover from " << m_lastMmWaveCell[imsi] << " to "
+--- a/src/mmwave/model/mmwave-enb-net-device.cc
++++ b/src/mmwave/model/mmwave-enb-net-device.cc
+@@ -87,6 +87,27 @@
+ 
+ namespace ns3
+ {
++std::string
++BuildUeListString(const std::map<uint16_t, Ptr<UeManager>>& ueMap)
++{
++    std::ostringstream oss;
++    bool first = true;
++    for (const auto& ue : ueMap)
++    {
++        if (ue.second == nullptr)
++        {
++            continue;
++        }
++        uint64_t imsi = ue.second->GetImsi();
++        if (!first)
++        {
++            oss << ",";
++        }
++        oss << imsi;
++        first = false;
++    }
++    return oss.str();
++}
+ 
+ NS_LOG_COMPONENT_DEFINE("MmWaveEnbNetDevice");
+ std::map <uint64_t, double> imsiRunningTime;
+@@ -920,10 +941,6 @@
+         {
+             uint64_t imsi = ue.second->GetImsi();
+             std::string ueImsiComplete = GetImsiString(imsi);
+-            if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-                && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                    continue;
+-                }
+ 
+             auto uePms = uePmString.find(imsi)->second;
+ 
+@@ -950,6 +967,7 @@
+     cuUpReport["timestamp"] = std::to_string(timestamp);
+     // cuUpReport["numActiveUes"] = std::to_string(ueMap.size());
+     cuUpReport["cellId"] = std::to_string(m_cellId);
++    cuUpReport["ue_list"] = BuildUeListString(ueMap);
+ 
+     // // get <rnti, UeManager> map of connected UEs
+     // auto ueMap = m_rrc->GetUeMap();
+@@ -974,10 +992,6 @@
+     {
+         uint64_t imsi = ue.second->GetImsi();
+         std::string ueImsiComplete = GetImsiString(imsi);
+-        if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-            && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                continue;
+-            }
+ 
+         // double rxDlPackets = m_e2PdcpStatsCalculator->GetDlRxPackets(imsi, 3); // LCID 3 is used
+         // for data
+@@ -1072,8 +1086,7 @@
+         // cuUpReport["pdcpThroughput" + std::to_string(imsi)] = std::to_string(pdcpThroughput);
+ 
+         // cuUpReport["pdcpLatency" + std::to_string(imsi)] = std::to_string(pdcpLatency);
+-        cuUpReport["pdcpLatency"] = std::to_string(pdcpLatency);
+-        
++        cuUpReport["ue." + std::to_string(imsi)] = std::to_string(pdcpLatency);
+         // cuUpReport["txPdcpPduBytesNrRlc" + std::to_string(imsi)] = std::to_string(txPdcpPduBytesNrRlc);
+         // cuUpReport["txPdcpPduNrRlc" + std::to_string(imsi)] = std::to_string(txPdcpPduNrRlc);
+         uePmString.insert(std::make_pair(imsi,std::to_string(txBytes) + 
+@@ -1163,10 +1176,6 @@
+     {
+         uint64_t imsi = ue.second->GetImsi();
+         std::string ueImsiComplete = GetImsiString(imsi);
+-        if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-            && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                continue;
+-            }
+ 
+         // This shall be created in connected mode and sent through the E2 Interface
+         // Since now they are now integrated in the asn1 definiton and they are leaking
+@@ -1296,10 +1305,6 @@
+         {
+             uint64_t imsi = ue.second->GetImsi();
+             std::string ueImsiComplete = GetImsiString(imsi);
+-            if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-                && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                    continue;
+-                }
+ 
+             auto uePms = uePmString.find(imsi)->second;
+ 
+@@ -1307,7 +1312,7 @@
+                                    std::to_string(ueMap.size()) + "," + std::to_string(meanRrcUes) +
+                                    "," + uePms + "\n";
+ 
+-            // NS_LOG_DEBUG(to_print);
++            NS_LOG_DEBUG(to_print);
+ 
+             csv << to_print;
+         }
+@@ -1332,11 +1337,7 @@
+     // cuCpReport["numActiveUes"] = std::to_string(ueMap.size());
+     int16_t numActiveUes = 0;
+     cuCpReport["cellId"] = std::to_string(m_cellId);
+-    // cuCpReport["RRC.ConnMean"] = std::to_string(meanRrcUes);
+-    // cuCpReport->insert({"timestamp", std::to_string(Simulator::Now().GetSeconds())});
+-    // cuCpReport->insert({"numActiveUes", std::to_string(ueMap.size())});
+-    // cuCpReport->insert({"cellId", std::to_string(m_cellId)});
+-    // cuCpReport->insert({"RRC.ConnMean", std::to_string(meanRrcUes)});
++    cuCpReport["ue_list"] = BuildUeListString(ueMap);
+     
+     std::unordered_map<uint64_t, std::string> uePmString{};
+ 
+@@ -1350,10 +1351,6 @@
+     NS_LOG_DEBUG("m_cuCpFileName open " << m_cuCpFileName);
+     for (auto ue : ueMap){
+         uint64_t imsi = ue.second->GetImsi();
+-        if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-            && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                continue;
+-            }
+         numActiveUes++;
+         std::string ueImsiComplete = GetImsiString(imsi);
+         // This shall be created in connected mode and sent through the E2 Interface
+@@ -1368,19 +1365,13 @@
+         // for the same cell
+         double sinrThisCell = 10 * std::log10(m_l3sinrMap[imsi][m_cellId]);
+         double convertedSinr = L3RrcMeasurements::ThreeGppMapSinr(sinrThisCell);
+-        cuCpReport["imsi"] = std::to_string(imsi);
+         // cuCpReport["numDRB" + std::to_string(imsi)] = std::to_string(numDrb);
+         // cuCpReport["servingSINR" + std::to_string(imsi)] = std::to_string(sinrThisCell);
+-        cuCpReport["servingSINR"] = std::to_string(sinrThisCell);
++        std::string cuCpMsg = std::to_string(sinrThisCell);
+         // cuCpReport["servingSINR3GPP" + std::to_string(imsi)] = std::to_string(convertedSinr);
+         NS_LOG_DEBUG(Simulator::Now().GetSeconds()
+                              << " enbdev " << m_cellId << " UE " << imsi << " L3 serving SINR "
+                              << sinrThisCell << " L3 serving SINR 3gpp " << convertedSinr);
+-        // cuCpReport->insert({"numDRB" + std::to
+-        // cuCpReport->insert({"IMSI" + std::to_string(imsi), ueImsiComplete});
+-        // cuCpReport->insert({"servingSINR" + std::to_string(imsi), std::to_string(sinrThisCell)});
+-        // cuCpReport->insert({"servingSINR3GPP" + std::to_string(imsi), std::to_string(convertedSinr)});
+-
+         // Ptr<L3RrcMeasurements> l3RrcMeasurementServing = L3RrcMeasurements::CreateL3RrcUeSpecificSinrServing(m_cellId, m_cellId, convertedSinr);
+         std::string servingStr = std::to_string(numDrb) + "," + std::to_string(0) + "," +
+                                  std::to_string(m_cellId) + "," + std::to_string(imsi) + "," +
+@@ -1407,7 +1398,7 @@
+                 sinr = 10 * std::log10(it->first); // now SINR is a key due to the sort of the map
+                 convertedSinr = L3RrcMeasurements::ThreeGppMapSinr(sinr);
+                 // l3RrcMeasurementNeigh->AddNeighbourCellMeasurement(cellId, convertedSinr);
+-                NS_LOG_DEBUG(Simulator::Now().GetSeconds()
++                NS_LOG_UNCOND(Simulator::Now().GetSeconds()
+                              << " enbdev " << m_cellId << " UE " << imsi << " L3 neigh " << cellId
+                              << " SINR " << sinr << " sinr encoded " << convertedSinr
+                              << " first insert");
+@@ -1416,7 +1407,7 @@
+                 
+                 // cuCpReport["neighId" + std::to_string(itIndex)] = std::to_string(cellId);
+                 // cuCpReport["neighSINR" + std::to_string(itIndex)] = std::to_string(sinr);
+-                cuCpReport["neighSINR" + std::to_string(cellId)] = std::to_string(sinr);
++                cuCpMsg  += "," + std::to_string(cellId) + "," + std::to_string(sinr);
+                 itIndex++; 
+                 // cuCpReport[std::to_string(imsi) + "neighId" + std::to_string(itIndex)] = std::to_string(cellId);
+                 // cuCpReport[std::to_string(imsi) + "neighSINR" + std::to_string(itIndex)] = std::to_string(sinr);
+@@ -1428,6 +1419,7 @@
+                 }
+    
+         }
++        cuCpReport.insert(std::make_pair("ue." + std::to_string(imsi), cuCpMsg));
+         for (int i = nNeighbours; i < E2SM_REPORT_MAX_NEIGH; i++)
+         {
+             neighStr += ",,,";
+@@ -1521,10 +1513,6 @@
+     {
+         uint64_t imsi = ue.second->GetImsi();
+         std::string ueImsiComplete = GetImsiString(imsi);
+-        if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-            && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                continue;
+-            }
+ 
+         uint16_t rnti = ue.second->GetRnti();
+ 
+@@ -1857,10 +1845,6 @@
+         {
+             uint64_t imsi = ue.second->GetImsi();
+             std::string ueImsiComplete = GetImsiString(imsi);
+-            if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-                && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                    continue;
+-                }
+ 
+             auto uePms = uePmStringDu.find(imsi)->second;
+ 
+@@ -1888,6 +1872,7 @@
+     duReport["timestamp"] = std::to_string(timestamp);
+     // duReport["numActiveUes"] = std::to_string(ueMap.size());
+     duReport["cellId"] = std::to_string(nrCellId);
++    duReport["ue_list"] = BuildUeListString(ueMap);
+ 
+     uint32_t macPduCellSpecific = 0;
+     uint32_t macPduInitialCellSpecific = 0;
+@@ -1926,10 +1911,6 @@
+     for (auto ue : ueMap)
+     {
+         uint64_t imsi = ue.second->GetImsi();
+-        if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-            && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                continue;
+-            }
+         std::string ueImsiComplete = GetImsiString(imsi);
+         uint16_t rnti = ue.second->GetRnti();
+ 
+@@ -2065,7 +2046,7 @@
+         double drbThrDlUeid =
+             m_drbThrDlUeid.find(imsi) != m_drbThrDlUeid.end() ? m_drbThrDlUeid.at(imsi) : 0;
+ 
+-
++        duReport["ue." + std::to_string(imsi)] = std::to_string(macPduUe) + "," + std::to_string(macRetx);
+ 
+         uePmStringDu.insert(std::make_pair(
+             imsi,
+@@ -2163,12 +2144,7 @@
+         std::to_string(macSinrBin7CellSpecific) + "," +
+         std::to_string(rlcBufferOccupCellSpecific) + "," + std::to_string(ueMap.size());
+         // duReport["macPduCellSpecific"] = std::to_string(macPduCellSpecific);
+-        duReport["macPduInitialCellSpecific"] = std::to_string(macPduInitialCellSpecific);
+-        duReport["macQpskCellSpecific"] = std::to_string(macQpskCellSpecific);
+-        duReport["mac16QamCellSpecific"] = std::to_string(mac16QamCellSpecific);
+-        duReport["mac64QamCellSpecific"] = std::to_string(mac64QamCellSpecific);
+-        // duReport["prbUsedDl"] = std::to_string(prbUtilizationDl);
+-        duReport["macRetxCellSpecific"] = std::to_string(macRetxCellSpecific);
++        duReport["prbUsedDl"] = std::to_string(prbUtilizationDl);
+         // duReport["macVolumeCellSpecific"] = std::to_string(macVolumeCellSpecific);
+         // duReport["macMac04CellSpecific"] = std::to_string(macMac04CellSpecific);
+         // duReport["macMac59CellSpecific"] = std::to_string(macMac59CellSpecific);
+@@ -2202,10 +2178,6 @@
+         {
+             uint64_t imsi = ue.second->GetImsi();
+             std::string ueImsiComplete = GetImsiString(imsi);
+-            if ((m_rrc->m_handoverMode == LteEnbRrc::THRESHOLD_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::FIXED_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::DYNAMIC_TTT_SEAMLESS || m_rrc->m_handoverMode == LteEnbRrc::GREEDY || m_rrc->m_handoverMode == LteEnbRrc::NO_AUTOMATIC_HANDOVER)
+-                && (timestamp >= imsiRunningTime.find(imsi)->second || timestamp < imsiArrivalTime.find(imsi)->second)){
+-                    continue;
+-                }
+ 
+             auto uePms = uePmStringDu.find(imsi)->second;
+ 

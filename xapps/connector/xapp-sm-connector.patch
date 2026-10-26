@@ -1,0 +1,788 @@
+--- a/build_xapp.sh
++++ b/build_xapp.sh
+@@ -4,8 +4,8 @@
+ export CONNECTOR_DIR=/home/xapp-sm-connector
+ 
+ # these are replaced through the dockerfile
+-export GNB_ID
+-export XAPP_ID
++export GNB_ID=ns-o-ran
++export XAPP_ID=24
+ 
+ # get build clean from cli arguments
+ if [ $# -ne 0 ]; then
+--- a/init/init_script.py
++++ b/init/init_script.py
+@@ -93,8 +93,8 @@
+ if __name__ == "__main__":
+ 
+     import subprocess;
+-#    cmd = ["../src/hw_xapp_main"];
+-    cmd = ["/usr/local/bin/hw_xapp_main"];
++    cmd = ["../src/hw_xapp_main"];
++    # cmd = ["/usr/local/bin/hw_xapp_main"];
+         
+     if len(sys.argv) > 1:
+         config_file = sys.argv[1];
+--- a/run_xapp.sh
++++ b/run_xapp.sh
+@@ -1,3 +1,3 @@
+ #!/bin/sh
+-
++set -x
+ cd /home/xapp-sm-connector/init/ && python3 init_script.py config-file.json
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1,3 +1,89 @@
++# CXX:= g++ --std=c++14 -O2 -L/usr/local/lib -I/usr/local/include/e2sim
++# CC:= gcc -O2 -L/usr/local/lib -I/usr/local/include/e2sim
++
++# SRC:=./
++# HWSRC:=./
++# UTILSRC=./xapp-utils
++# MSGSRC:=./xapp-mgmt
++
++# ASNSRC:=../asn1c_defs
++# E2APSRC:=./xapp-asn/e2ap
++# E2SMSRC:=./xapp-asn/e2sm
++# NEWINCLUDESRC:=/usr/local/include/e2sim
++
++# E2SIMBUILD1:=/home/oran-e2sim/e2sim/build/libe2sim.a
++# E2SIMBUILD2:=/home/oran-e2sim/e2sim/build/libe2sim_shared.so
++# # E2SIMFLAGS= -lm $(E2SIMBUILD1) -lm $(E2SIMBUILD2)
++
++# ####### Logging library and flags
++# CLOGFLAGS:= `pkg-config mdclog --cflags`
++# LOG_LIBS:= `pkg-config mdclog --libs`
++# CURL_LIBS:= `pkg-config libcurl --libs`
++# RNIB_LIBS:= -pthread /usr/local/include/rnib/rnibreader.a
++# ######## Keep include dirs separate so we have transparency
++
++
++# BASEFLAGS=  -Wall -std=c++14 $(CLOGFLAGS) 
++# C_BASEFLAGS= -Wall $(CLOGFLAGS) -DASN_DISABLE_OER_SUPPORT
++
++# XAPPFLAGS= -I./
++# HWFLAGS= -I./
++
++# UTILFLAGS= -I$(UTILSRC) #-I$(NEWINCLUDESRC)
++# MSGFLAGS= -I$(MSGSRC)
++
++# ASNFLAGS=-I$(ASNSRC) -DASN_DISABLE_OER_SUPPORT
++# E2APFLAGS = -I$(E2APSRC)
++# E2SMFLAGS = -I$(E2SMSRC)
++
++# ########libs
++
++# LIBS= -lsdl -lrmr_si  -lpthread -lm $(LOG_LIBS) $(CURL_LIBS) $(RNIB_LIBS) -lm $(E2SIMBUILD1)
++# COV_FLAGS= -fprofile-arcs -ftest-coverage
++
++# #######
++# HWXAPP_SRC= hw_xapp_main.cc
++# XAPP_SRC= xapp.cc
++# UTIL_SRC= $(wildcard $(UTILSRC)/*.cc)
++# MSG_SRC= $(wildcard $(MSGSRC)/*.cc)
++
++# E2AP_SRC= $(wildcard $(E2APSRC)/*.cc)
++# E2SM_SRC= $(wildcard $(E2SMSRC)/*.cc)
++# ASN1C_SRC= $(wildcard $(ASNSRC)/*.c)
++
++# ##############Objects
++# UTIL_OBJ=${UTIL_SRC:.cc=.o}
++# XAPP_OBJ=${XAPP_SRC:.cc=.o}
++# HWXAPP_OBJ= ${HWXAPP_SRC:.cc=.o} 
++# MSG_OBJ= ${MSG_SRC:.cc=.o}
++
++# E2AP_OBJ = $(E2AP_SRC:.cc=.o)
++# E2SM_OBJ = $(E2SM_SRC:.cc=.o)
++# ASN1C_MODULES = $(ASN1C_SRC:.c=.o)
++
++# $(ASN1C_MODULES): export CFLAGS = $(C_BASEFLAGS) $(ASNFLAGS)
++# $(UTIL_OBJ):export CPPFLAGS=$(BASEFLAGS) $(UTILFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS) $(MSGFLAGS)
++
++# $(MSG_OBJ):export CPPFLAGS=$(BASEFLAGS) $(MSGFLAGS) $(ASNFLAGS) $(E2APFLAGS) $(E2SMFLAGS)
++# $(E2AP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2APFLAGS)
++# $(E2SM_OBJ): export CPPFLAGS = $(BASEFLAGS) $(ASNFLAGS) $(E2SMFLAGS)
++# $(XAPP_OBJ): export CPPFLAGS = $(BASEFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
++
++# $(HWXAPP_OBJ):export CPPFLAGS=$(BASEFLAGS) $(HWFLAGS) $(XAPPFLAGS) $(UTILFLAGS) $(MSGFLAGS) $(E2APFLAGS) $(E2SMFLAGS) $(ASNFLAGS)
++
++# OBJ= $(HWXAPP_OBJ) $(UTIL_OBJ) $(MSG_OBJ)  $(ASN1C_MODULES) $(E2AP_OBJ) $(E2SM_OBJ) $(XAPP_OBJ)
++
++# print-%  : ; @echo $* = $($*)
++
++# hw_xapp_main: $(OBJ)
++# 	$(CXX) -o $@  $(OBJ) $(LIBS) $(RNIBFLAGS) $(CPPFLAGS) $(CLOGFLAGS) agent_connector.cc
++
++# install: hw_xapp_main
++# 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main
++
++# clean:
++# 	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
++
+ CXX:= g++ --std=c++14 -O2 -L/usr/local/lib
+ CC:= gcc -O2 -L/usr/local/lib
+ 
+@@ -76,4 +162,4 @@
+ 	install  -D hw_xapp_main  /usr/local/bin/hw_xapp_main
+ 
+ clean:
+-	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
++	-rm *.o $(ASNSRC)/*.o $(E2APSRC)/*.o $(UTILSRC)/*.o $(E2SMSRC)/*.o  $(MSGSRC)/*.o $(SRC)/*.o hw_xapp_main 
+\ No newline at end of file
+--- a/src/agent_connector.cc
++++ b/src/agent_connector.cc
+@@ -1,5 +1,7 @@
+ #include "agent_connector.hpp"
++#include <thread>
+ 
++std::mutex socket_send_mutex;
+ 
+ // open client of control socket with agent
+ int open_control_socket_agent(const char* dest_ip, const int dest_port) {
+@@ -38,7 +40,7 @@
+   // update map
+   std::string agent_ip;
+   agent_ip.assign(dest_ip);
+-  // std::cout << "Agent IP " << agent_ip << std::endl;
++  std::cout << "Agent IP " << agent_ip << " Control Socket " << control_sckfd << std::endl;
+   agentIp_socket[agent_ip] = control_sckfd;
+ 
+   return 0;
+@@ -104,7 +106,7 @@
+ 
+ 
+ // send through socket
+-int send_socket(char* buf, std::string dest_ip) {
++int send_socket(char* buf, size_t payload_size, std::string dest_ip) {
+ 
+   int control_sckfd = -1;
+ 
+@@ -124,17 +126,19 @@
+     return -1;
+   }
+ 
++  uint32_t net_size = htonl (static_cast<u_int32_t> (payload_size));
++  send (control_sckfd, &net_size, sizeof(net_size), 0); // send size first
++  char response[3] = {0};
+   // const size_t max_size = 512;
+   // char buf[max_size] = "Hello, Server!";  // store the data in a buffer
+-  size_t data_size = strlen(buf);
+-  int sent_size = send(control_sckfd ,buf, data_size, 0);
++  int sent_size = send(control_sckfd, buf, payload_size, 0);
+ 
+   if(sent_size < 0) { // the send returns a size of -1 in case of errors
+       std::cout <<  "ERROR: SEND to agent " << dest_ip << std::endl;
+       return -2;
+   }
+   else {
+-      std::cout << "Message sent" << std::endl;
++      std::cout << "Message sent, size = " << sent_size << std::endl;
+   }
+ 
+   return 0;
+--- a/src/agent_connector.hpp
++++ b/src/agent_connector.hpp
+@@ -11,9 +11,11 @@
+ #include <netinet/in.h>
+ #include <unistd.h>
+ #include <map>
++#include <mutex>
+ #include <vector>
+ 
+ #define AGENT_0 "127.0.0.1"
++extern std::mutex socket_send_mutex;
+ 
+ // vector of agent IPs
+ extern std::vector<std::string> drl_agent_ip;
+@@ -27,6 +29,6 @@
+ int open_control_socket_agent(const char* dest_ip, const int dest_port);
+ void close_control_socket_agent(void);
+ std::string find_agent_ip_from_gnb(unsigned char* gnb_id);
+-int send_socket(char* buf, std::string dest_ip);
++int send_socket(char* buf, size_t payload_size, std::string dest_ip);
+ 
+ #endif
+--- a/src/hw_xapp_main.cc
++++ b/src/hw_xapp_main.cc
+@@ -54,7 +54,6 @@
+ 	//getting the listening port and xapp name info
+ 	std::string  port = config[XappSettings::SettingName::HW_PORT];
+ 	std::string  name = config[XappSettings::SettingName::XAPP_NAME];
+-
+ 	//initialize rmr
+ 	std::unique_ptr<XappRmr> rmr = std::make_unique<XappRmr>(port);
+ 	rmr->xapp_rmr_init(true);
+--- a/src/xapp-asn/e2ap/e2ap_control.cc
++++ b/src/xapp-asn/e2ap/e2ap_control.cc
+@@ -97,7 +97,7 @@
+     return false;
+   }
+ 
+-  //xer_fprint(stdout, &asn_DEF_E2AP_PDU, e2ap_pdu_obj);
++  xer_fprint(stdout, &asn_DEF_E2AP_PDU, e2ap_pdu_obj);
+   
+   asn_enc_rval_t retval = asn_encode_to_buffer(0, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2AP_PDU, e2ap_pdu_obj, buf, *size);
+   
+--- a/src/xapp-formats/e2ap/e2ap_control_helper.hpp
++++ b/src/xapp-formats/e2ap/e2ap_control_helper.hpp
+@@ -32,7 +32,7 @@
+ typedef struct ric_control_helper ric_control_helper;
+ 
+ struct ric_control_helper{
+-  ric_control_helper(void):req_id(1), req_seq_no(1), func_id(0), action_id(1), control_ack(-1), cause(0), sub_cause(0), control_status(1), control_msg(0), control_msg_size(0), control_header(0), control_header_size(0), call_process_id(0), call_process_id_size(0){};
++  ric_control_helper(void):req_id(1), req_seq_no(1), func_id(300), action_id(1), control_ack(-1), cause(0), sub_cause(0), control_status(1), control_msg(0), control_msg_size(0), control_header(0), control_header_size(0), call_process_id(0), call_process_id_size(0){};
+   
+   long int req_id, req_seq_no, func_id, action_id,  control_ack, cause, sub_cause, control_status;
+   
+--- a/src/xapp-mgmt/msgs_proc.cc
++++ b/src/xapp-mgmt/msgs_proc.cc
+@@ -25,6 +25,7 @@
+ 
+ #include "msgs_proc.hpp"
+ #include <stdio.h>
++#include <map>
+ 
+ 
+ bool XappMsgHandler::encode_subscription_delete_request(unsigned char* buffer, size_t *buf_len){
+@@ -190,8 +191,8 @@
+ 				break;
+ 		 }
+ 
+-	case A1_POLICY_REQ:
+-
++		case A1_POLICY_REQ:
++		{
+ 		    mdclog_write(MDCLOG_INFO, "In Message Handler: Received A1_POLICY_REQ.");
+ 			helper.handler_id = xapp_id;
+ 
+@@ -202,8 +203,8 @@
+ 				*resend = true;
+ 			}
+ 			break;
+-
+-	default:
++		}
++		default:
+ 		{
+ 			mdclog_write(MDCLOG_ERR, "Error :: Unknown message type %d received from RMR", message->mtype);
+ 			*resend = false;
+@@ -254,40 +255,79 @@
+    printf("\nE2AP : RIC Indication received");
+    ricIndication = &e2apMsg->choice.initiatingMessage->value.choice.RICindication;
+ 
+-   printf("protocolIEs elements %d\n", ricIndication->protocolIEs.list.count);
+ 
+    for (idx = 0; idx < ricIndication->protocolIEs.list.count; idx++)
+    {
+       switch(ricIndication->protocolIEs.list.array[idx]->id)
+       {
+-				case 28:  // RIC indication type
+-				{
+-					long ricindicationType = ricIndication->protocolIEs.list.array[idx]-> \
+-																		 value.choice.RICindicationType;
+-
+-					printf("ricindicationType %ld\n", ricindicationType);
+-
+-					break;
+-				}
+-				case 26:  // RIC indication message
+-				{
+-					int payload_size = ricIndication->protocolIEs.list.array[idx]-> \
+-																		 value.choice.RICindicationMessage.size;
+-
+-
+-					char* payload = (char*) calloc(payload_size, sizeof(char));
+-					memcpy(payload, ricIndication->protocolIEs.list.array[idx]-> \
+-																		 value.choice.RICindicationMessage.buf, payload_size);
+-
+-					printf("Payload %s\n", payload);
+-
+-					// send payload to agent
+-					std::string agent_ip = find_agent_ip_from_gnb(gnb_id);
+-					send_socket(payload, agent_ip);
+-
+-					break;
+-				}
++		case 28:  // RIC indication type
++		{
++			long ricindicationType = ricIndication->protocolIEs.list.array[idx]-> \
++																	value.choice.RICindicationType;
++
++
++			break;
++		}
++		case 26:  // RIC indication message
++		{
++			size_t payload_size = ricIndication->protocolIEs.list.array[idx]-> \
++																	value.choice.RICindicationMessage.size;
++
++
++			char* payload = (char*) calloc(payload_size, sizeof(char));
++			memcpy(payload, ricIndication->protocolIEs.list.array[idx]-> \
++																	value.choice.RICindicationMessage.buf, payload_size);
++			std::string agent_ip = find_agent_ip_from_gnb(gnb_id);
++			std::map<std::string, std::string> report = deserialize_map((uint8_t*)payload, payload_size);
++			for (const auto& [key, value] : report) {
++        		std::cout << key << ": " << value << std::endl;
++    		}
++			std::lock_guard<std::mutex> lock(socket_send_mutex);
++			send_socket(payload, payload_size, agent_ip);
++			free(payload);
++			break;
++		}
+       }
+    }
+    return ret; // TODO update ret value in case of errors
+ }
++std::map<std::string, std::string> deserialize_map(uint8_t* arrayPtr, size_t arrayLength) {
++    std::map<std::string, std::string> result;
++    if (arrayPtr == nullptr || arrayLength < sizeof(uint32_t)) {
++        return result;
++    }
++    size_t offset = 0;
++    const uint8_t* data = arrayPtr;
++    uint32_t mapSize;
++    std::memcpy(&mapSize, data + offset, sizeof(uint32_t));
++    offset += sizeof(uint32_t);
++    mapSize = ntohl(mapSize);
++    for (uint32_t i = 0; i < mapSize; i++) {
++        if (offset + sizeof(uint32_t) > arrayLength) {
++            break;
++        }
++        uint32_t keyLen;
++        std::memcpy(&keyLen, data + offset, sizeof(uint32_t));
++        offset += sizeof(uint32_t);
++        keyLen = ntohl(keyLen);
++        if (offset + keyLen > arrayLength) {
++            break;
++        }
++        std::string key(reinterpret_cast<const char*>(data + offset), keyLen);
++        offset += keyLen;
++        if (offset + sizeof(uint32_t) > arrayLength) {
++            break;
++        }
++        uint32_t valLen;
++        std::memcpy(&valLen, data + offset, sizeof(uint32_t));
++        offset += sizeof(uint32_t);
++        valLen = ntohl(valLen);
++        if (offset + valLen > arrayLength) {
++            break;
++        }
++        std::string value(reinterpret_cast<const char*>(data + offset), valLen);
++        offset += valLen;
++        result[key] = value;
++    }
++    return result;
++}
+\ No newline at end of file
+--- a/src/xapp-mgmt/msgs_proc.hpp
++++ b/src/xapp-mgmt/msgs_proc.hpp
+@@ -45,6 +45,7 @@
+ #include "../agent_connector.hpp"
+ 
+ #define MAX_RMR_RECV_SIZE 2<<15
++extern asn_TYPE_descriptor_t asn_DEF_E2SM_KPM_IndicationMessage;
+ 
+ class XappMsgHandler{
+ 
+@@ -71,4 +72,5 @@
+ void process_ric_indication(int message_type, transaction_identifier id, const void *message_payload, size_t message_len);
+ uint8_t procRicIndication(E2AP_PDU_t *e2apMsg, transaction_identifier gnb_id);
+ 
++std::map<std::string, std::string> deserialize_map(uint8_t* arrayPtr, size_t arrayLength);
+ #endif /* XAPP_MSG_XAPP_MSG_HPP_ */
+--- a/src/xapp-mgmt/subs_mgmt.hpp
++++ b/src/xapp-mgmt/subs_mgmt.hpp
+@@ -99,7 +99,7 @@
+ 			    
+ public:
+ 
+-  SubscriptionHandler(unsigned int timeout_seconds = 10);
++  SubscriptionHandler(unsigned int timeout_seconds = 1);
+   
+   template <typename AppTransmitter>
+   int manage_subscription_request(transaction_identifier, AppTransmitter &&);
+@@ -206,7 +206,7 @@
+ 	  // we have woken and acquired data_lock
+ 	  // check status and return appropriate object
+ 	  int status = get_request_status(rmr_trans_id);
+-
++    std::cout << "status: " << status << std::endl;
+ 	  if (status == request_success){
+ 		  mdclog_write(MDCLOG_INFO, "Successfully subscribed for request for trans_id %s", rmr_trans_id);
+ 		  res = SUBSCR_SUCCESS;
+--- a/src/xapp-utils/xapp_rmr.hpp
++++ b/src/xapp-utils/xapp_rmr.hpp
+@@ -118,7 +118,6 @@
+ 	mdclog_write(MDCLOG_INFO, "Starting receiver thread %s",  thread_id.str().c_str());
+ 
+ 	while(parent->get_listen()) {
+-		mdclog_write(MDCLOG_INFO, "Listening at Thread: %s",  thread_id.str().c_str());
+ 
+ 		this->_xapp_received_buff = rmr_rcv_msg( rmr_context, this->_xapp_received_buff );
+ 		//this->_xapp_received_buff = rmr_rcv_msg( rmr_context, this->_xapp_received_buff );
+@@ -130,7 +129,6 @@
+ 		}
+ 		else
+ 		{
+-			mdclog_write(MDCLOG_INFO,"RMR Received Message of Type: %d, Message length: %d", this->_xapp_received_buff->mtype, this->_xapp_received_buff->len);
+ 
+ 			char printBuffer[4096] = {0};
+ 			char *tmp = printBuffer;
+@@ -138,7 +136,6 @@
+ 					snprintf(tmp, 3, "%02x", _xapp_received_buff->payload[i]);
+ 					tmp += 2;
+ 			}
+-			mdclog_write(MDCLOG_INFO,"RMR Received Message: %s", printBuffer);
+ 
+ 		    //in case message handler returns true, need to resend the message.
+ 			msgproc(this->_xapp_received_buff, resend);
+--- a/src/xapp.cc
++++ b/src/xapp.cc
+@@ -93,6 +93,37 @@
+         // get list of gnbs from ric
+         std::cout << "Getting gNB list from RIC" << std::endl;
+         set_rnib_gnblist();
++    } else if (strcmp(GNB_ID, "file") == 0) {
++        std::cout << "Getting gNB list from file" << std::endl;
++        std::ifstream id_file("gnb_list.txt", ios_base::in);
++        if(!id_file) {
++            std::cerr << "Error in opening file, gonna crash!" << std::endl;
++            exit(-1);
++        }
++        std::string id_gnb;
++        while(getline(id_file,id_gnb)){
++            std::cout << "gNB read: " << id_gnb << std::endl;
++            rnib_gnblist.push_back(id_gnb);
++        }
++    } else if (strcmp(GNB_ID, "ns-o-ran") == 0) {
++        std::vector <std::string> gnb_ids{"gnb:131-133-31000000", "gnb:131-133-32000000", "gnb:131-133-33000000",
++                                          "gnb:131-133-34000000", "gnb:131-133-35000000"};
++        for (vector<string>::iterator it = gnb_ids.begin(); it != gnb_ids.end(); it++) {
++            std::cout << "gNB read: " << *it << std::endl;
++            rnib_gnblist.push_back(*it);
++        }
++    } else if (strcmp(GNB_ID, "rsu") == 0) {
++        std::cout << "Getting gNB list from file" << std::endl;
++        std::ifstream id_file("rsu_list.txt", ios_base::in);
++        if(!id_file) {
++            std::cerr << "Error in opening file, gonna crash!" << std::endl;
++            exit(-1);
++        }
++        std::string id_gnb;
++        while(getline(id_file,id_gnb)){
++            std::cout << "gNB read: " << id_gnb << std::endl;
++            rnib_gnblist.push_back(id_gnb);
++        }
+     }
+     else {
+         // only insert target gnb
+@@ -101,7 +132,7 @@
+     }
+ 
+     // open external control socket in thread and wait for message
+-    ext_control_thr_rx = std::unique_ptr<std::thread>(new std::thread{&Xapp::handle_external_control_message, this, SOCKET_PORT_EXT});
++    ext_control_thr_rx = std::unique_ptr<std::thread>(new std::thread{&Xapp::handle_external_control_message, this, SOCKET_PORT_EXT});  // 7000
+ 
+     for (int i = 0; i < drl_agent_ip.size(); ++i) {
+         // open control socket with agent
+@@ -122,7 +153,6 @@
+ 	// startup_get_policies();
+ 
+ 	// send control
+-	// send_ric_control_request();
+ 
+ 	return;
+ }
+@@ -161,44 +191,6 @@
+ 	return;
+ }
+ 
+-// handle received message from DRL agent
+-void Xapp::handle_rx_msg(void) {
+-    std::cout << "handle_rx_msg" << std::endl;
+-
+-    const size_t max_size = 256;
+-    char buf[max_size] = {0};
+-
+-    // listen to control from agent
+-    while (true) {
+-        // iterate through map
+-        std::map<std::string, int>::iterator it;
+-        for (it = agentIp_socket.begin(); it != agentIp_socket.end(); ++it) {
+-            std::string agent_ip = it->first;
+-            int control_sckfd = it->second;
+-
+-            int rcv_size = recv(control_sckfd, buf, max_size, 0);
+-            if (rcv_size > 0) {
+-                std::cout << "Message from agent " << agent_ip << std::endl;
+-                std::cout << buf << std::endl;
+-
+-                // get gnb_id from agent IP
+-                std::map<std::string, std::string>::iterator it_gnb;
+-                it_gnb = agentIp_gnbId.find(agent_ip);
+-
+-                // send RIC control request
+-                if (it_gnb != agentIp_gnbId.end()) {
+-                    send_ric_control_request(buf, it_gnb->second);
+-                }
+-                else {
+-                    std::cout << "ERROR: No gNB ID found for agent " << agent_ip << std::endl;
+-                }
+-
+-                memset(buf, 0, max_size);
+-            }
+-        }
+-    }
+-}
+-
+ // handle received message from a specific DRL agent
+ void Xapp::handle_rx_msg_agent(std::string agent_ip) {
+     std::cout << "Opening RX thread with agent " << agent_ip << std::endl;
+@@ -211,26 +203,21 @@
+         // get control_sckfd from agent IP
+         std::map<std::string, int>::iterator it;
+         it = agentIp_socket.find(agent_ip);
+-
++        std::cout << "DRL_Agent_IP: " << agent_ip << " Agent_Socket: " << it->first << " " << it->second << std::endl;
+         if (it != agentIp_socket.end()) {
+             int control_sckfd = it->second;
+-
+             int rcv_size = recv(control_sckfd, buf, max_size, 0);
++            std::cout << "rcv_size: " << rcv_size << std::endl;
+             if (rcv_size > 0) {
+                 std::cout << "Message from agent " << agent_ip << std::endl;
+                 std::cout << buf << std::endl;
+ 
+-                // get gnb_id from agent IP
+-                std::map<std::string, std::string>::iterator it_gnb;
+-                it_gnb = agentIp_gnbId.find(agent_ip);
+-
+-                // send RIC control request
+-                if (it_gnb != agentIp_gnbId.end()) {
+-                send_ric_control_request(buf, it_gnb->second);
+-                }
+-                else {
+-                std::cout << "ERROR: No gNB ID found for agent " << agent_ip << std::endl;
+-                }
++                char* part1 = nullptr;
++                char* part2 = nullptr;
++                split_data(buf, rcv_size, &part1, &part2);
++                send_ric_control_ts_request(part1, part2);
++                delete[] part1;
++                delete[] part2;
+ 
+                 memset(buf, 0, max_size);
+             }
+@@ -270,7 +257,6 @@
+     while (true) {
+         auto addrlen = sizeof(sockaddr);
+         int connection = accept(sockfd, (struct sockaddr*)&sockaddr, (socklen_t*)&addrlen);
+-    
+         if (connection < 0) {
+             continue;
+         }
+@@ -279,7 +265,6 @@
+         const size_t max_size = 256;
+         char buffer[max_size] = {0};
+         auto bytes_read = read(connection, buffer, 100);
+-        
+         if (bytes_read > 0) {
+             std::cout << "External control socket. Message received: " << buffer << std::endl;
+ 
+@@ -326,7 +311,6 @@
+ }
+ 
+ void Xapp::send_ric_control_request(char* payload, std::string gnb_id) {
+-  
+     std::cout << "Sending RIC Control Request" << std::endl;
+ 
+ 	bool res;
+@@ -368,7 +352,13 @@
+  	//	"testp", // call process id
+  	//	6
+  	//};
+-	const char* msg = payload;
++    din.req_id = 1001;
++    din.func_id = 300;
++    const char* header = "2";
++    din.control_header_size = strlen(header) + 1;
++    din.control_header = (uint8_t*)calloc(din.control_header_size, sizeof(uint8_t*));
++    std::memcpy(din.control_header, header, din.control_header_size);
++    const char* msg = payload;
+ 	din.control_msg_size = strlen(msg) + 1;
+ 	mdclog_write(MDCLOG_INFO, "Size of msg %d", din.control_msg_size);
+ 	din.control_msg = (uint8_t*) calloc(din.control_msg_size, sizeof(uint8_t));
+@@ -397,6 +387,54 @@
+     }
+ }
+ 
++void Xapp::send_ric_control_request(char* payload, std::string gnb_id, long int req_id, long int func_id, const char* control_header) {
++    std::cout << "Sending RIC Control Request" << std::endl;
++	bool res;
++	size_t data_size = ASN_BUFF_MAX_SIZE;
++	unsigned char	data[data_size];
++	unsigned char meid[RMR_MAX_MEID];
++	std::string xapp_id = config_ref->operator [](XappSettings::SettingName::XAPP_ID);
++	mdclog_write(MDCLOG_INFO, "Preparing to send control in file= %s, line=%d", __FILE__, __LINE__);
++    auto gnblist = get_rnib_gnblist();
++    int sz = gnblist.size();
++    if(sz <= 0) {
++	   mdclog_write(MDCLOG_INFO, "Subscriptions cannot be sent as GNBList in RNIB is NULL");
++        return;
++    }
++ 	strcpy((char*)meid, gnb_id.c_str());
++ 	ric_control_helper din {};
++    din.req_id = req_id;
++    din.func_id = func_id;
++    const char* header = control_header;
++    din.control_header_size = strlen(header) + 1;
++    din.control_header = (uint8_t*)calloc(din.control_header_size, sizeof(uint8_t*));
++    std::memcpy(din.control_header, header, din.control_header_size);
++    const char* msg = payload;
++	din.control_msg_size = strlen(msg) + 1;
++	din.control_msg = (uint8_t*) calloc(din.control_msg_size, sizeof(uint8_t));
++	std::memcpy(din.control_msg, msg, din.control_msg_size);
++ 	ric_control_helper dout {};
++ 	ric_control_request ctrl_req {};
++ 	ric_control_request ctrl_recv {};
++ 	unsigned char buf[BUFFER_SIZE];
++    size_t buf_size = BUFFER_SIZE;
++ 	res = ctrl_req.encode_e2ap_control_request(&buf[0], &buf_size, din);
++ 	xapp_rmr_header rmr_header;
++	rmr_header.message_type = RIC_CONTROL_REQ;
++	rmr_header.payload_length = buf_size; //data_size
++	strcpy((char*)rmr_header.meid, gnb_id.c_str());
++	mdclog_write(MDCLOG_INFO, "Sending CTRL REQ in file= %s, line=%d for MEID %s", __FILE__, __LINE__, meid);
++    int result = rmr_ref->xapp_rmr_send(&rmr_header, (void*)buf);
++    if(result) {
++   	    mdclog_write(MDCLOG_INFO, "CTRL REQ SUCCESSFUL in file= %s, line=%d for MEID %s",__FILE__,__LINE__, meid);
++    }
++}
++void Xapp::send_ric_control_ts_request(const char* ueImsi, char* targetCellId) {
++    long int req = 1001;
++    long int func_id = 300;
++    std::string gnb_id = get_rnib_gnblist()[0];
++    send_ric_control_request(targetCellId, gnb_id, req, func_id, ueImsi);
++}
+ void Xapp::startup_subscribe_requests(void ){
+ 
+     bool res;
+@@ -410,6 +448,7 @@
+     auto gnblist = get_rnib_gnblist();
+ 
+     int sz = gnblist.size();
++    std::cout << "\nNumber of gnbs: " << sz << std::endl;
+ 
+     if(sz <= 0)
+        mdclog_write(MDCLOG_INFO,"Subscriptions cannot be sent as GNBList in RNIB is NULL");
+@@ -436,7 +475,7 @@
+ 
+         //Random Data  for request
+         int request_id = XAPP_REQ_ID;
+-        int function_id = 0;
++        int function_id = 200;
+ 
+         // DU report timer in ms
+         std::string event_def = "250";
+@@ -533,7 +572,32 @@
+     	std::string name = gnbobj["inventory_name"].GetString();
+     	rnib_gnblist.push_back(name);
+     }
+-    
+     closeSdl();
+     return;
+ }
++void split_data(char* buf, int rcv_size, char** part1, char** part2) {
++    *part1 = nullptr;
++    *part2 = nullptr;
++    char* comma_ptr = static_cast<char*>(memchr(buf, ',', rcv_size));
++    if (comma_ptr) {
++        size_t part1_len = comma_ptr - buf;
++        *part1 = new char[part1_len + 1];
++        memcpy(*part1, buf, part1_len);
++        (*part1)[part1_len] = '\0';
++        size_t part2_len = rcv_size - (part1_len + 1);
++        if (part2_len > 0) {
++            *part2 = new char[part2_len + 1];
++            memcpy(*part2, comma_ptr + 1, part2_len);
++            (*part2)[part2_len] = '\0';
++        } else {
++            *part2 = new char[1];
++            (*part2)[0] = '\0';
++        }
++    } else {
++        *part1 = new char[rcv_size + 1];
++        memcpy(*part1, buf, rcv_size);
++        (*part1)[rcv_size] = '\0';
++        *part2 = new char[1];
++        (*part2)[0] = '\0';
++    }
++}
+--- a/src/xapp.hpp
++++ b/src/xapp.hpp
+@@ -28,6 +28,7 @@
+ #define SRC_XAPP_HPP_
+ 
+ #include <iostream>
++#include <fstream>
+ #include <string>
+ #include <memory>
+ #include <csignal>
+@@ -59,14 +60,13 @@
+ 
+ // used to identify xApp requests with DUs
+ // Note: this value is updated at Docker build to use the last octet of the xApp IP
+-#define XAPP_REQ_ID 0
++#define XAPP_REQ_ID 24
+ 
+ #define SOCKET_PORT_EXT 7000
+ #define XAPP_TERMINATE "terminate"
+ 
+ // id of gnb to control as seen from the ric
+-#define GNB_ID ""
+-
++#define GNB_ID "file"
+ #define DEBUG 0
+ 
+ class Xapp{
+@@ -101,6 +101,8 @@
+   void startup_subscribe_requests(void );
+   void shutdown_subscribe_deletes(void);
+   void send_ric_control_request(char* payload, std::string gnb_id);
++  void send_ric_control_request(char* payload, std::string gnb_id, long int req_id, long int func_id, const char* control_header);
++  void send_ric_control_ts_request(const char* ueImsi, char* targetCellId);
+   void startup_get_policies(void );
+ 
+   void handle_rx_msg(void);
+@@ -121,5 +123,6 @@
+   std::unique_ptr<std::thread> ext_control_thr_rx;
+ };
+ 
++void split_data(char* buf, int rcv_size, char** part1, char** part2);
+ 
+ #endif /* SRC_XAPP_HPP_ */
+--- /dev/null
++++ b/init/gnb_list.txt
+@@ -0,0 +1,5 @@
++gnb:131-133-31000000
++gnb:131-133-32000000
++gnb:131-133-33000000
++gnb:131-133-34000000
++gnb:131-133-35000000
+--- /dev/null
++++ b/init/rsu_list.txt
+@@ -0,0 +1,11 @@
++gnb:131-133-31000000
++gnb:131-133-32000000
++gnb:131-133-33000000
++gnb:131-133-34000000
++gnb:131-133-35000000
++gnb:131-133-36000000
++gnb:131-133-37000000
++gnb:131-133-38000000
++gnb:131-133-39000000
++gnb:131-133-31300000
++gnb:131-133-31310000
+\ No newline at end of file

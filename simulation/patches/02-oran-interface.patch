@@ -1,0 +1,108 @@
+--- a/model/ric-control-message.cc
++++ b/model/ric-control-message.cc
+@@ -26,6 +26,9 @@
+ #include <ns3/asn1c-types.h>
+ #include <ns3/log.h>
+ #include <bitset>
++#include <string.h>
++#include <cstring>
++#include <memory>
+ namespace ns3 {
+ 
+ NS_LOG_COMPONENT_DEFINE ("RicControlMessage");
+@@ -78,7 +81,6 @@
+             }
+             case RICcontrolRequest_IEs__value_PR_RANfunctionID: {
+                 m_ranFunctionId = ie->value.choice.RANfunctionID;
+-
+                 NS_LOG_DEBUG("[E2SM] RICcontrolRequest_IEs__value_PR_RANfunctionID");
+                 break;
+             }
+@@ -89,7 +91,7 @@
+             }
+             case RICcontrolRequest_IEs__value_PR_RICcontrolHeader: {
+                 NS_LOG_DEBUG("[E2SM] RICcontrolRequest_IEs__value_PR_RICcontrolHeader");
+-                // xer_fprint(stderr, &asn_DEF_RICcontrolHeader, &ie->value.choice.RICcontrolHeader);
++                xer_fprint(stderr, &asn_DEF_RICcontrolHeader, &ie->value.choice.RICcontrolHeader);
+ 
+                 auto *e2smControlHeader = (E2SM_RC_ControlHeader_t *) calloc(1,
+                                                                              sizeof(E2SM_RC_ControlHeader_t));
+@@ -104,6 +106,8 @@
+                     //m_e2SmRcControlHeaderFormat1->ric_ControlAction_ID;
+                     //m_e2SmRcControlHeaderFormat1->ric_ControlStyle_Type;
+                     //m_e2SmRcControlHeaderFormat1->ueId;
++                    memcpy(m_e2SmRcControlHeaderFormat1->ueId.buf, ie->value.choice.RICcontrolHeader.buf, ie->value.choice.RICcontrolHeader.size);
++                    m_e2SmRcControlHeaderFormat1->ueId.size = ie->value.choice.RICcontrolHeader.size;
+                 } else {
+                     NS_LOG_DEBUG("[E2SM] Error in checking format of E2SM Control Header");
+                 }
+@@ -128,6 +132,28 @@
+                     NS_LOG_DEBUG ("[E2SM] E2SM_RC_ControlMessage_PR_controlMessage_Format1");
+                     E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1 =
+                         e2SmControlMessage->choice.controlMessage_Format1;
++                    e2SmRcControlMessageFormat1->ranParameters_List->list.array =
++                        (RANParameter_Item_t **)calloc(1, sizeof(RANParameter_Item_t *));
++                    NS_LOG_DEBUG ("array: " << e2SmRcControlMessageFormat1->ranParameters_List->list.array <<
++                                    " size: " << e2SmRcControlMessageFormat1->ranParameters_List->list.count);
++                    e2SmRcControlMessageFormat1->ranParameters_List->list.count = 1;
++                    e2SmRcControlMessageFormat1->ranParameters_List->list.size = e2SmRcControlMessageFormat1->ranParameters_List->list.count;
++                    for (auto i = 0; i < e2SmRcControlMessageFormat1->ranParameters_List->list.size; i++) {
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i] = (RANParameter_Item_t *)calloc(1, sizeof(RANParameter_Item_t));
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_ID = 1;
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType =
++                            (RANParameter_ValueType_t *)calloc(1, sizeof(RANParameter_ValueType_t));
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->present = RANParameter_ValueType_PR_ranParameter_Element;
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element = (RANParameter_ELEMENT_t *)calloc(1, sizeof(RANParameter_ELEMENT_t));
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.present = RANParameter_Value_PR_valueOctS;
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.size = ie->value.choice.RICcontrolMessage.size;    // strlen (e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.buf) + 1;
++                        e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.buf =
++                            (uint8_t *)calloc(1, sizeof(uint8_t));
++                        memcpy (e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.buf,
++                                ie->value.choice.RICcontrolMessage.buf,
++                                e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.size);
++                        NS_LOG_DEBUG ("buf: " << e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.buf << " size: " << e2SmRcControlMessageFormat1->ranParameters_List->list.array[i]->ranParameterItem_valueType->choice.ranParameter_Element->ranParameter_Value.choice.valueOctS.size << "\n");
++                    }
+                     m_valuesExtracted =
+                         ExtractRANParametersFromControlMessage (e2SmRcControlMessageFormat1);
+                     if (m_requestType == ControlMessageRequestIdType::TS)
+@@ -137,10 +163,16 @@
+                           {
+                             if (item.m_valueType == RANParameterItem::ValueType::OctectString)
+                               {
+-                                // First 3 digits are the PLMNID (always 111), last digit is CellId
+-                                std::string cgi = item.m_valueStr->DecodeContent ();
+-                                 NS_LOG_INFO ("Decoded CGI value is: " << cgi);
+-                                m_secondaryCellId = cgi.back();
++                                std::string cgi = item.m_valueStr->DecodeContent();
++                                NS_LOG_INFO("Decoded CGI value is: " << cgi);
++                                if (cgi.size() > 3)
++                                {
++                                m_secondaryCellId = cgi.substr(3);   // "11110"->"10", "11111"->"11"
++                                }
++                                else
++                                {
++                                m_secondaryCellId = cgi;
++                                }
+                               }
+                           }         
+                       }
+@@ -203,15 +235,13 @@
+   int count = e2SmRcControlMessageFormat1->ranParameters_List->list.count;
+   for (int i = 0; i < count; i++)
+     {
+-      RANParameter_Item_t *ranParameterItem =
+-          e2SmRcControlMessageFormat1->ranParameters_List->list.array[i];
+-      for (RANParameterItem extractedParameter :
+-           RANParameterItem::ExtractRANParametersFromRANParameter (ranParameterItem))
++        RANParameter_Item_t *ranParameterItem = e2SmRcControlMessageFormat1->ranParameters_List->list.array[i];
++        auto extractedParameter = RANParameterItem::ExtractRANParametersFromRANParameter (ranParameterItem);
++        for (size_t i = 0; i < extractedParameter.size(); i++)
+         {
+-          ranParameterList.push_back (extractedParameter);
++        ranParameterList.push_back (extractedParameter[i]);
+         }
+     }
+-
+   return ranParameterList;
+ }
+ 
